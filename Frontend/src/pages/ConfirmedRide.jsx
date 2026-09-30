@@ -2,6 +2,7 @@ import React from 'react'
 import { ImCross } from "react-icons/im";
 import { RiMoneyRupeeCircleLine } from "react-icons/ri"
 import { HiOutlineLocationMarker } from "react-icons/hi";
+import { useState } from 'react';
 
 
 const ConfirmedRide = (props) => {

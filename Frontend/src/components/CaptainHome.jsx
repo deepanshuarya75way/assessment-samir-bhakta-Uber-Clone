@@ -9,7 +9,7 @@ import ConfirmRidePopupPanel from '../pages/ConfirmRidePopupPanel';
 import { SocketContext } from '../context/SocketContext';
 import { CaptainDataContext } from '../context/CaptainContext';
 import axios from 'axios';
-import LiveTracking from './LiveTracking';
+//import LiveTracking from './LiveTracking';
 
 const CaptainHome = () => {
   const [ridePopupPanel, setRidePopupPanel] = useState(false)

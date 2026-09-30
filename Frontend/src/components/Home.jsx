@@ -59,21 +59,18 @@ const Home = () => {
     });
 
     const updateLocation = () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => {
           const location = {
-            lng: position.coords.longitude,
-            lat: position.coords.latitude
+            lng:  72.8354,
+            lat: 18.9388
           };
           setUserLocation(location);
           socket.emit('update-location-user', {
             userId: user._id,
             location
           });
-          console.log(user._id, position.coords.latitude, position.coords.longitude)
-        })
-      }
-    }
+          console.log(user._id)
+        }  
+    
     const locationInterval = setInterval(updateLocation, 10000)
     updateLocation()
 
