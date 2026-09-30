@@ -1,10 +1,9 @@
 import React from "react"
 import { Route, Routes } from "react-router-dom"
 import Home from "./components/Home"
-import UserLogin from "./components/userLogin"
-import UserSignup from "./components/userSignup"
-import CaptainLogin from "./components/captainLogin"
-import CaptainSignup from "./components/captainSignup"
+import UserLogin from "./components/UserLogin"
+import UserSignup from "./components/UserSignup"
+import CaptainSignup from "./components/CaptainSignup"
 import Start from "./components/Start"
 import UserProtectWrapper from "./components/UserProtectWrapper"
 import UserLogout from "./components/UserLogout"
@@ -13,6 +12,7 @@ import CaptainProtectWrapper from "./components/CaptainProtectWrapper"
 import CaptainLogout from "./components/CaptainLogout"
 import Riding from "./components/Riding"
 import CaptainRiding from "./components/CaptainRiding"
+import CaptainLogin from "./components/CaptainLogin"
 function App() {
   return (
    <div>

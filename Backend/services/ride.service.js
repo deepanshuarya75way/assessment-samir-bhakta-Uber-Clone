@@ -1,6 +1,7 @@
 import rideModel from '../models/ride.model.js';
 import { sendMessageToSocketId } from '../socket.js';
 import { getDistanceTime } from './maps.service.js';
+import { validAndApplyCoup } from './coupon.service.js';
 import crypto from 'crypto';
 
 async function getFare(pickup, destination) {
@@ -39,20 +40,38 @@ function getOTP(num) {
     return otp;
 }
 
-const createRide = async ({user, pickup, destination, vehicleType }) => {
+const createRide = async ({user, pickup, destination, vehicleType, couponCode }) => {
     if(!user || !pickup || !destination || !vehicleType){
         throw new Error('User, pickup, destination, and vehicle type are required');
     }
     const fare = await getFare(pickup, destination);
+    const origFare= Number(fare[vehicleType])
+    let finalFare= origFare
+    let appiedCoupon= null;
+    let discount=0;
     
-    const newRide = new rideModel({
+    if(couponCode){
+        const couponRes= await validAndApplyCoup({
+            couponCode,
+            pickup,
+            origFare:fare
+        })
+        appiedCoupon= couponRes.coupon.code
+        discount= couponRes.discount
+        finalFare= Math.max(0,origFare-discount)
+    }
+
+    const newRide= new rideModel({
         user,
         pickup,
         otp: getOTP(6),
         destination,
-        fare: fare[vehicleType].toFixed(2),
-    });
-    return newRide.save();
+        fare: Number(finalFare.toFixed(2)),
+        origFare: Number(origFare.toFixed(2)),
+        discount: Number(discount.toFixed(2)),
+        coupon: appiedCoupon
+    })
+    return newRide.save()
 }
 
 const getConfirmRide = async (rideId, captainId) => {

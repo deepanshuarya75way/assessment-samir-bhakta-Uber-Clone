@@ -1,9 +1,24 @@
 import React from 'react'
+import { useState } from 'react';
 import { FaUser } from "react-icons/fa";
 import { ImCross } from "react-icons/im";
 import { RiMoneyRupeeCircleLine } from 'react-icons/ri'
 
 const VehiclePanel = (props) => {
+  const [couponCode,setCouponCode] = useState("")
+  const handleApplyCoupon=(e)=>{
+    if(e) e.preventDefault()
+    if(couponCode.trim() && props.onApplyCoupon){
+      props.onApplyCoupon(couponCode.trim())
+    }
+  }
+
+  const handleQuickApply=(code)=>{
+    setCouponCode(code)
+    if(props.onApplyCoupon){
+      props.onApplyCoupon(code)
+    }
+  }
   return (
     <div>
         <h5 onClick={()=> props.setVehiclePanel(false)} className='p-3 right-0 absolute w-[93%] top-0'><ImCross/></h5>

@@ -3,7 +3,10 @@ import { validationResult } from 'express-validator';
 import { getCaptainInTheRadius } from '../services/maps.service.js';
 import { getAddressCoordinate } from '../services/maps.service.js';
 import { sendMessageToSocketId } from '../socket.js';
+import { validAndApplyCoup, getAvailCoupCon } from '../services/coupon.service.js';
 import rideModel from '../models/ride.model.js';
+import userModel from '../models/userModels.js';
+
 
 const create = async (req, res) => {
     const errors = validationResult(req);
@@ -25,17 +28,21 @@ const create = async (req, res) => {
             return;
         }
 
-        const captainInRadius = await getCaptainInTheRadius(pickupCoordinates.ltd, pickupCoordinates.lng, 10);        
+        const captainInRadius = await getCaptainInTheRadius(pickupCoordinates.ltd, pickupCoordinates.lng, 20);        
         ride.otp = "";
 
         const rideWithUser= await rideModel.findOne({_id:ride._id}).populate('user')
-        captainInRadius.map(captain => {          
-            sendMessageToSocketId(captain.socketId, {
-                event: 'new-ride',
-                data: rideWithUser
-            });
-        });
-
+        console.log(`alerting ${captainInRadius?.length ||0} captain in 20km`)
+        if(captainInRadius && captainInRadius?.length>0){
+            captainInRadius.forEach(cap=>{
+                if(cap.socketId){
+                    sendMessageToSocketId(cap.socketId,{
+                        event: 'new-ride',
+                        data: rideWithUser
+                    })
+                }
+            })
+        }
     } catch (error) {
         console.error(error);
         if (!res.headersSent) {
@@ -125,7 +132,7 @@ const endRide=async(req,res)=>{
 const updateLocation = async (req, res) => {
     const { userId, location } = req.body;
     try {
-        const user = await User.findById(userId);
+        const user = await userModel.findById(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -144,5 +151,33 @@ const updateLocation = async (req, res) => {
         return res.status(500).json({ message: err.message });
     }
 }
+const applyCoupon= async(req,res)=>{
+        const errors= validationResult(req)
+        if(!errors.isEmpty()){
+            return res.status(400).json({errors: errors.array()})
+        }
+        const {couponCode, pickup, originalFares} = req.body
+        try{
+            const result= await validAndApplyCoup({
+                couponCode,
+                pickup,
+                originalFares
+            })
+            return res.status(200).json({success:true, ...result})
+        }catch(err){
+            console.log('error applying coupon', err.message)
+            return res.status(err.statusCode||400).json({success:false, message: err.message,isAreaError:!!err.isAreaError, distanceKm: err.distanceKm, allowedRadInKm: err.allowedRadInKm})
+        }
+    }
 
-export { create, Fare, confirmRide, startRide, endRide, updateLocation };
+    const getCouponInfo= async(req,res)=>{
+        try {
+            const coupon= getAvailCoupCon()
+            return res.status(200).json({success: true, coupon})
+        } catch (err) {
+            console.error('error fetchiong infor')
+            return res.status(500).json({success:false, message: 'internal erver error'})
+        }
+    }
+
+export { create, Fare, confirmRide, startRide, endRide, updateLocation, applyCoupon, getCouponInfo };

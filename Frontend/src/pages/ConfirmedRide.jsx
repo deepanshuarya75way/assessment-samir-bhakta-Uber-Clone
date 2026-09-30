@@ -5,6 +5,18 @@ import { HiOutlineLocationMarker } from "react-icons/hi";
 
 
 const ConfirmedRide = (props) => {
+  const [couponCode,setCouponCode] = useState()
+  const originalFare= props.fare?.[props.vehicleType]
+  const discountedFare= props.discountedFare?.[props.vehicleType]
+  const isDiscounted= props.appliedCoupon && discountedFare!== undefined
+  const finalFare= isDiscounted? discountedFare: originalFare
+
+  const handleApply=(e)=>{
+    if(e) e.preventDefault()
+    if(couponCode.trim() && props.onApplyCoupon){
+      props.onApplyCoupon(couponCode.trim())
+    }
+  }
   return (
     <div>
         <h5 onClick={()=> props.setConfirmRidePanel(false)} className='p-3 right-0 absolute w-[93%] top-0'><ImCross/></h5>

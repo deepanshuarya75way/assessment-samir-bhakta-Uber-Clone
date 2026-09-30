@@ -21,6 +21,17 @@ const rideSchema = mongoose.Schema({
         type:Number,
         required:true,
     },
+    originalFare:{
+        type: Number
+    },
+    discount:{
+        type: Number,
+        default:0
+    },
+    coupon:{
+        type: String,
+        default:null
+    },
     status:{
         type:String,
         enum:['pending','ongoing','accepted','completed','cancelled'],

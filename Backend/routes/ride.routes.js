@@ -1,14 +1,23 @@
 import express from 'express';
 const router = express.Router();
 import { body,query } from 'express-validator';
-import { create, Fare, confirmRide, startRide, endRide, updateLocation } from '../controllers/ride.controller.js';
+import { create, Fare, confirmRide, startRide, endRide, updateLocation, getCouponInfo, applyCoupon } from '../controllers/ride.controller.js';
 import {authCaptain, authUser} from '../middleware/auth.middleware.js'
 
 router.post('/create',authUser,
     body('pickup').isString().isLength({ min: 3 }).withMessage('Invalid pickup address'),
     body('destination').isString().isLength({ min: 3 }).withMessage('Invalid destination address'),
     body('vehicleType').isString().isIn(['auto', 'car', 'motorcycle']).withMessage('Invalid vehicle type'),
+    body('couponCode').optional().isString().withMessage('invalid coupon code'),
     create
+)
+
+router.get('coupon-info',authUser,getCouponInfo)
+
+router.get('/apply-coupon',authUser,
+    body('couponCode').isString().trim().notEmpty().withMessage('coupon code req'),
+    body('pickup').isString().isLength({ min: 3 }).withMessage('Invalid pickup address'),
+    applyCoupon
 )
 
 router.get('/get-fare',authUser,

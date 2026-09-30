@@ -33,7 +33,13 @@ const Home = () => {
   const [vehicleType, setVehicleType] = useState(null)
   const [ride, setRide] = useState(null)
   const [userLocation, setUserLocation] = useState({ lng: 0, lat: 0 });
+  const [discountedFare,setDiscountedFare]= useState({})
+  const [availableCoupon,setAvailableCoupon]= useState(null)
+  const [appliedCoupon,setAppliedCoupon]= useState(null)
+  const [couponLoading,setCouponLoading]= useState(false)
+  const [couponError,setCouponError]= useState("")
 
+  const getAuthToken=()=> localStorage.getItem('token')|| localStorage.getItem('userToken')
   const { socket } = useContext(SocketContext)
   const { user } = useContext(UserDataContext)
   const navigate = useNavigate()
@@ -77,6 +83,78 @@ const Home = () => {
       clearInterval(locationInterval);
     };
   }, [socket, user._id, navigate]);
+
+  useEffect(()=>{
+    const fetchCouponInfo= async()=>{
+      const token= getAuthToken()
+      if(!token) return
+      try{
+        const res= await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/coupon-info`,{
+          headers:{
+            Authorization: `Bearer ${token}`
+          }
+        })
+        if(res.data?.success && res.data?.coupon){
+          setAvailableCoupon(res.data.coupon)
+        }
+      }catch(err){
+        console.error('error fetching coupon')
+      }
+    }
+    fetchCouponInfo()
+  },[])
+
+  const handleApplyCoupon= async (code) => {
+    if(!code){
+      setCouponError("enter coupon code")
+      return
+    }
+    if(!pickup){
+      setCouponError("pickup location needed")
+      return
+    }
+    setCouponLoading(true)
+    setCouponError("")
+    try {
+      const res= await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/apply-coupon`,{
+        couponCode: code,
+        pickup,
+        originalFare: fare
+      },{
+        headers:{
+          Authorization: `BEARER ${getAuthToken()}`
+        }
+      })
+      if(res.data?.success){
+        setAppliedCoupon(res.data.coupon)
+        if(res.data.discountedFare){
+          setDiscountedFare(res.data.discountedFare)
+        }else{
+          const disc= res.data.discount||50
+          const newFare= {}
+          for(const [k,v] of Object.entries(fare)){
+            newFare[k] = Math.max(0,Math.round(Number(v)-disc))
+          }
+          setDiscountedFare(newFare)
+        }
+        setCouponError('')
+      }
+    } catch (err) {
+      console.log('error applying coupon',err)
+      const msg= err.response?.data?.message || err.message
+      setCouponError(msg)
+      setAppliedCoupon(null)
+      setDiscountedFare({})
+    }finally{
+      setCouponLoading(false)
+    }
+  }
+
+  const handleRemoveCoup= ()=>{
+    setCouponError("")
+      setAppliedCoupon(null)
+      setDiscountedFare({})
+  }
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -150,9 +228,9 @@ const Home = () => {
     try {
       const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/create`, {
         pickup, destination, vehicleType
-      }, {
+      }+pickup,+destination,+vehicleType,+ appliedCoupon?.code||undefined, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}` || `Bearer ${getAuthToken()}`
         }
       })
     } catch (error) {
@@ -298,12 +376,12 @@ const Home = () => {
 
       {/* Vehicle Selection Panel */}
       <div ref={vehiclePanelRef} className="fixed translate-y-full z-10 w-full bottom-0 bg-white p-6 shadow-lg">
-        <VehiclePanel setVehicleType={setVehicleType} fare={fare} setConfirmRidePanel={setConfirmRidePanel} setVehiclePanel={setVehiclePanel} />
+        <VehiclePanel setVehicleType={setVehicleType} discountedFare={discountedFare} appliedCoupon={appliedCoupon} availableCoupon={availableCoupon} couponError={couponError} couponLoading={couponLoading} onApplyCoupon={handleApplyCoupon} onRemoveCoupon={handleRemoveCoup}  fare={fare} setConfirmRidePanel={setConfirmRidePanel} setVehiclePanel={setVehiclePanel} />
       </div>
 
       {/* Ride Selection Panel */}
       <div ref={confirmedRideRef} className="fixed translate-y-full z-10 w-full bottom-0 bg-white p-6 shadow-lg">
-        <ConfirmedRide pickup={pickup} destination={destination} fare={fare} vehicleType={vehicleType} createRide={createRide} setConfirmRidePanel={setConfirmRidePanel} setVehicleFound={setVehicleFound} />
+        <ConfirmedRide pickup={pickup} discountedFare={discountedFare} appliedCoupon={appliedCoupon} availableCoupon={availableCoupon} couponError={couponError} couponLoading={couponLoading} onApplyCoupon={handleApplyCoupon} onRemoveCoupon={handleRemoveCoup} destination={destination} fare={fare} vehicleType={vehicleType} createRide={createRide} setConfirmRidePanel={setConfirmRidePanel} setVehicleFound={setVehicleFound} />
       </div>
 
       {/* vehilce found Selection Panel */}

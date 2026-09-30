@@ -107,23 +107,38 @@ const getAutoComleteSuggestions = async (input) => {
     }
 };
 
-const getCaptainInTheRadius = async (ltd, lng, radius) => {
+function calDistInKm(lat1, lon1, lat2, lon2){
+    const R= 6371;
+    const dLat= (lat2-lat1)*(Math.PI/180)
+    const dLon= (lon2-lon1)*(Math.PI/180)
+    const a=Math.sin(dLat/2)*Math.sin(dLat/2)+ Math.cos(lat1*(Math.PI/180))*Math.cos(lat2*(Math.PI/180))* Math.sin(dLon/2)*Math.sin(dLon/2)
+    const c= 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    return R*c
+}
+
+const getCaptainInTheRadius = async (ltd, lng, radius=20) => {
     if (!ltd || !lng) {
         throw new Error('Invalid coordinates');
     }
     try {
-        const captains = await captainModel.find({
-            location: {
-                $geoWithin: {
-                    $centerSphere: [[ltd, lng], radius / 6371]
-                }
-            }
-        });      
-        return captains;
+        
+        const onlineCap= await captainModel.find({socketId: {$exists: true,$ne:null}})
+        const capInRange= onlineCap.filter(cap=>{
+            const capLat= cap.location?.ltd || cap.location?.lat
+            const capLng= cap.location?.lnd || cap.location?.lon
+            if(!capLat|| !capLng) return true
+
+            const distance= calDistInKm(ltd,lng,capLat,capLng)
+            return distance<=radius
+        })
+        if(capInRange.length>0) {return capInRange}
+        return onlineCap
+
     } catch (error) {
-        console.error('Error fetching captains:', error);
+        console.error('Error fetching captains raduis:', error);
+        return[]
     }
     
 };
 
-export { getAddressCoordinate, getDistanceTime, getCaptainInTheRadius, getAutoComleteSuggestions };
+export { getAddressCoordinate, getDistanceTime, getCaptainInTheRadius, getAutoComleteSuggestions, calDistInKm };
